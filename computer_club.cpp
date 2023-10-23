@@ -5,7 +5,7 @@
 #include <sstream>
 
 
-struct Event { // Структура-событие
+struct Event {
 	std::string time;
 	int id;
 	std::string client_name;
@@ -18,7 +18,7 @@ struct Table {
 	int profit = 0;
 };
 
-std::vector<std::string> split_string(std::string& line, char del) { // Разделение строки на составные части по разделителю
+std::vector<std::string> split_string(std::string& line, char del) { // Divedes the string into parts by delimiter
 	std::vector<std::string> tokens;
 	std::stringstream ss(line);
 	std::string token;
@@ -29,21 +29,21 @@ std::vector<std::string> split_string(std::string& line, char del) { // Разделен
 
 }
 
-bool check_data_symbols(std::string& data, const char* format) { //Проверка, что строка не пустая и не содержит лишних символов
+bool check_data_symbols(std::string& data, const char* format) { // Cheks that the string is not empty and doesn't contatin unwanted symblos
 	if (data.find_first_not_of(format) == std::string::npos && data.length() != 0)
 		return true;
 	return false;
 }
 
-bool check_time_format(std::string& time) { // Проверка соответствия времени виду "24-часовой формат с двоеточием в качестве разделителя XX:XX, незначащие нули обязательны"
+bool check_time_format(std::string& time) { // Cheks if the string fits time format "XX:XX, 24-hour with ':' as a separator, unmeaningful nulls are required"
 	if (time[2] == ':' && isdigit(time[0]) && isdigit(time[1]) && isdigit(time[3]) && isdigit(time[4]))
 		return true;
 	return false;
 }
 
-void check_init_data(std::ifstream& in, int& comp_numb, std::string& start_time, std::string& end_time, int& hour_price) { // Считывание и проверка корректности первых трех строк файла с данными
+void check_init_data(std::ifstream& in, int& comp_numb, std::string& start_time, std::string& end_time, int& hour_price) { // Reading and checking first three lines from data file
 	
-	// Считываение и проверка количества столов
+	// Reading and checking the number of tables
 	std::string n;
 	getline(in, n);
 	if (!(check_data_symbols(n, "0123456789"))) {
@@ -54,7 +54,7 @@ void check_init_data(std::ifstream& in, int& comp_numb, std::string& start_time,
 		comp_numb = std::stoi(n);
 	}
 
-	// Считывание и проверка времени работы
+	// Reading and checking work time
 	std::string time;
 	getline(in, time);
 	if (time[5] != ' ') {
@@ -62,25 +62,25 @@ void check_init_data(std::ifstream& in, int& comp_numb, std::string& start_time,
 		return;
 	}
 
-	// Разделение начала и конца времени работы
+	// Separating the start and the end of the work time
 	std::vector<std::string> tokens;
 	tokens = split_string(time, ' ');
 
-	// Проверка начала времени работы
+	// Checking the start of the work time
 	start_time = tokens[0];
 	if (!(check_data_symbols(start_time, ":0123456789") && check_time_format(start_time))) {
 		throw time;
 		return;
 	}
 
-	// Проверка конца времени работы
+	// Checking the end of the work time
 	end_time = tokens[1];
 	if (!(check_data_symbols(end_time, ":0123456789") && check_time_format(end_time))) {
 		throw time;
 		return;
 	}
 	
-	// Считывание и проверка стоимости часа в компьютерном клубе
+	// Reading and checking work time hour price in cimputer club
 	std::string c;
 	getline(in, c);
 	if (!(check_data_symbols(c, "0123456789"))) {
@@ -94,39 +94,39 @@ void check_init_data(std::ifstream& in, int& comp_numb, std::string& start_time,
 	return;
 }
 
-void check_event_format(std::string& line, Event& event) { // Проверка корректности строк с событиями
+void check_event_format(std::string& line, Event& event) { // Checking the correctness of event strings
 	
-	// Разделение строки на элементы события
+	// Splitting a string into event elements
 	std::vector<std::string> tokens;
 	tokens = split_string(line, ' ');
 
-	if (tokens.size() < 3 || tokens.size() > 4) { // Проверка количества элементов события
+	if (tokens.size() < 3 || tokens.size() > 4) { // Checking the number of event elements
 		throw line;
 		return;
 	}
 
-	// Проверка формата времени
+	// Checking the time format
 	if (!(check_data_symbols(tokens[0], ":0123456789") && check_time_format(tokens[0]))) {
 		throw line;
 		return;
 	}
 	event.time = tokens[0];
 	
-	// Проверка формата id события
+	// Checking the event id format
 	if (!(check_data_symbols(tokens[1], "0123456789"))) {
 		throw line;
 		return;
 	}
 	event.id = std::stoi(tokens[1]);
 
-	// Проверка формата имени клиента
+	// Checking the format of the client name
 	if (!(check_data_symbols(tokens[2], "abcdefghijklmnopqrstuvwxyz0123456789_-"))) {
 		throw line;
 		return;
 	}
 	event.client_name = tokens[2];
 
-	// Проверка формата номера стола (если есть в событии)
+	// Checking the table number format (if present in the event)
 	if (tokens.size() == 4) {
 		if (!(check_data_symbols(tokens[3], "0123456789"))) {
 			throw line;
@@ -137,29 +137,29 @@ void check_event_format(std::string& line, Event& event) { // Проверка корректно
 	return;
 }
 
-std::vector<std::string> event_process(std::vector<Event>& events, Table* tables, int& comp_numb) { // Обработка событий. Возвращает вектор строк, относящихся к событиям, которые отправятся на вывод программы
+std::vector<std::string> event_process(std::vector<Event>& events, Table* tables, int& comp_numb) { // Events processing. Returns vector of strings related to events that will be printed as a result of the program
 	std::vector<std::string> out_lines;
 	return out_lines;
 }
 
-void output(std::vector <std::string>& events_lines, Table* tables, int& comp_numb, std::string& start_time, std::string& end_time, int& hour_price) { // Вывод результата работы в консоль
+void output(std::vector <std::string>& events_lines, Table* tables, int& comp_numb, std::string& start_time, std::string& end_time, int& hour_price) { // Output of the work result to the console
 	
-	// Время начала работы
+	// The start of the work time
 	std::cout << start_time << std::endl;
 
-	// Результаты обработки событий
+	// Results of events processing
 	for (int i = 0; i < events_lines.size(); ++i) {
 		std::cout << events_lines[i] << std::endl;
 	}
 
-	// Время конца работы
+	// The end of the work time
 	std::cout << end_time << std::endl;
 	
-	// Вывод выручки и времени занятости каждого стола
+	// Output of profit and usage time of each table
 	for (int i = 0; i < comp_numb; ++i) {
 		std::cout << tables[i].id << " " << tables[i].profit << " " << tables[i].usage_time << std::endl;
 	}
-	// Данные о последнем столе выводятся без перевода строки
+	// Result for the last table is output without endl
 	std::cout << tables[comp_numb - 1].id << " " << tables[comp_numb - 1].profit << " " << tables[comp_numb - 1].usage_time;
 	return;
 }
@@ -173,23 +173,23 @@ int main(int argc, char *argv[]) {
 		FileName = argv[1];
 	}
 	else {
-		std::cout << ""; // Не введен файл для чтения
+		std::cout << ""; // No file entered for reading
 		return 1;
 	}
 	try {
 
-		// Попытка открыть файл
+		// Attempt to open a file
 		std::ifstream in;
 		in.open(FileName);
 		if (!in.is_open()) throw FileName;
 
-		// Считывание и проверка первых трех строк файла с данными
+		// Reading and checking the first three lines of the data file
 		int comp_numb, hour_price;
 		std::string start_time;
 		std::string end_time;
 		check_init_data(in, comp_numb, start_time, end_time, hour_price);
 		
-		// Считывание, проверка и обработка событий
+		// Reading and checking events
 		std::string line;
 		std::vector <Event> events;
 		while (std::getline(in, line)) {
@@ -198,12 +198,12 @@ int main(int argc, char *argv[]) {
 			events.push_back(event);
 		}
 
-		// Обработка событий
+		// Processing events
 		std::vector <std::string> events_lines;
 		Table* tables = new Table [comp_numb];
 		events_lines = event_process(events, tables, comp_numb);
 
-		// Вывод результата
+		// Output result
 		output(events_lines, tables, comp_numb, start_time, end_time, hour_price);
 	}
 	catch (const std::string err) {
