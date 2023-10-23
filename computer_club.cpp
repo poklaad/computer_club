@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <sstream>
+#include <map>
 
 
 struct Event {
@@ -16,6 +17,7 @@ struct Table {
 	int id;
 	std::string usage_time;
 	int profit = 0;
+	bool is_busy = false;
 };
 
 std::vector<std::string> split_string(std::string& line, char del) { // Divedes the string into parts by delimiter
@@ -152,8 +154,11 @@ bool first_before_second(std::string time_1, std::string time_2) { // Compares t
 	return true;
 }
 
-std::vector<std::string> event_process(std::vector<Event>& events, Table* tables, int& comp_count) { // Events processing. Returns vector of strings related to events that will be printed as a result of the program
-	std::vector<std::string> out_lines;
+std::vector<std::string> event_process(std::vector<Event>& events, Table* tables, int& comp_count, std::string& start_time, std::string& end_time) { // Events processing. Returns vector of strings related to events that will be printed as a result of the program
+	
+	std::vector<std::string> out_lines; // lines to output
+	std::map<std::string, int> clients_tables; // clients and their tables (if client doesn't have table, table's number = 0)
+
 	for (int i = 0; i < events.size(); ++i) {
 
 		// Checking that events are consequential
@@ -164,30 +169,96 @@ std::vector<std::string> event_process(std::vector<Event>& events, Table* tables
 			}
 		}
 
+		std::string out_line;
 		switch (events[i].id) {
-		case 1:
-			// if event requires the table, chesk its presence. if doesn't, check its absence
+		case 1: { // Client has come
+
+			// Creating first out line
+			out_line = events[i].time + " " + std::to_string(events[i].id) + " " + events[i].client_name;
+
+			// There should NOT be table number
+			if (events[i].table != 0) {
+				out_line = out_line + " " + std::to_string(events[i].table);
+				out_lines.push_back(out_line);
+				out_line = "";
+				throw events[i];
+				return out_lines;
+			}
+
+			out_lines.push_back(out_line);
+			out_line = "";
+
+			bool excep = false;
+
+			// Check if the client has already come
+			if (clients_tables.count(events[i].client_name)) {
+				out_line = events[i].time + " 13 YouShallNotPass";
+				out_lines.push_back(out_line);
+				out_line = "";
+				excep = true;
+			}
+
+			// Check if client came not in business hours
+			if (first_before_second(events[i].time, start_time) || first_before_second(end_time, events[i].time)) {
+				out_line = events[i].time + " 13 NotOpenYet";
+				out_lines.push_back(out_line);
+				out_line = "";
+				excep = true;
+			}
+
+			// If there is no exception, add client to the map of clients with no tabel (0)
+			if (!excep) {
+				clients_tables.insert(std::make_pair(events[i].client_name, 0));
+				excep = false;
+			}
+
+			out_line = "";
 			break;
-		case 2:
-			// if event requires the table, chesk its presence. if doesn't, check its absence
+		}
+		case 2: {
+
+			// There should be table number
+			if (events[i].table == 0) {
+				throw events[i];
+				return out_lines;
+			}
+
 			break;
-		case 3:
-			// if event requires the table, chesk its presence. if doesn't, check its absence
+		}
+		case 3: {
+
+			// There should NOT be table number
+			if (events[i].table != 0) {
+				throw events[i];
+				return out_lines;
+			}
+
 			break;
-		case 4:
-			// if event requires the table, chesk its presence. if doesn't, check its absence
+		}
+		case 4: {
+
+			// There should NOT be table number
+			if (events[i].table != 0) {
+				throw events[i];
+				return out_lines;
+			}
+
 			break;
-		case 11:
-			// if event requires the table, chesk its presence. if doesn't, check its absence
+		}
+		default: { // There is no such id, throw an error
+
+			// Creating out line
+			out_line = events[i].time + " " + std::to_string(events[i].id) + " " + events[i].client_name;
+
+			if (events[i].table != 0) {
+				out_line = out_line + " " + std::to_string(events[i].table);
+				out_lines.push_back(out_line);
+				out_line = "";
+				throw events[i];
+				return out_lines;
+			}
 			break;
-		case 12:
-			// if event requires the table, chesk its presence. if doesn't, check its absence
-			break;
-		case 13:
-			// if event requires the table, chesk its presence. if doesn't, check its absence
-			break;
-		default:
-			break;
+		}
 		}
 	}
 
@@ -218,6 +289,7 @@ void output(std::vector <std::string>& events_lines, Table* tables, int& comp_co
 
 
 // ÏĞÎÂÅĞÈÒÜ, ×ÒÎ ÂÑÅ ÑÎÁÛÒÈß ÈÄÓÒ ÏÎÑËÅÄÎÂÀÒÅËÜÍÎ
+// ÏĞÎÂÅĞÈÒÜ, ×ÒÎ Â ÊÎÍÖÅ ĞÀÁÎ×ÅÃÎ ÄÍß ÂÑÅ ÓØËÈ. ÂÑÅ ÓÕÎÄßÒ Â ÀËÔÀÂÈÒÍÎÌ ÏÎĞßÄÊÅ ÈÕ ÈÌÅÍ
 
 int main(int argc, char *argv[]) {
 	std::string FileName = "";
@@ -253,7 +325,7 @@ int main(int argc, char *argv[]) {
 		// Processing events
 		std::vector <std::string> events_lines;
 		Table* tables = new Table [comp_count];
-		events_lines = event_process(events, tables, comp_count);
+		events_lines = event_process(events, tables, comp_count,start_time, end_time);
 
 		// Output result
 		output(events_lines, tables, comp_count, start_time, end_time, hour_price);
@@ -261,6 +333,11 @@ int main(int argc, char *argv[]) {
 	catch (const std::string err) {
 		std::cerr << err;
 		return 2;
+	}
+	catch (Event err) {
+		std::cerr << err.time << " " << err.id << " " << err.client_name;
+		if (err.table != 0) std::cerr << " " << err.table;
+		return 3;
 	}
 	return 0;
 }
