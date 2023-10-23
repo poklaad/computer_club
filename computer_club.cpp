@@ -5,14 +5,14 @@
 #include <sstream>
 
 
-struct Event { // РЎС‚СЂСѓРєС‚СѓСЂР°-СЃРѕР±С‹С‚РёРµ
+struct Event { // Структура-событие
 	std::string time;
 	int id;
 	std::string client_name;
 	int table = 0;
 };
 
-std::vector<std::string> split_string(std::string& line, char del) { // Р Р°Р·РґРµР»РµРЅРёРµ СЃС‚СЂРѕРєРё РЅР° СЃРѕСЃС‚Р°РІРЅС‹Рµ С‡Р°СЃС‚Рё РїРѕ СЂР°Р·РґРµР»РёС‚РµР»СЋ
+std::vector<std::string> split_string(std::string& line, char del) { // Разделение строки на составные части по разделителю
 	std::vector<std::string> tokens;
 	std::stringstream ss(line);
 	std::string token;
@@ -23,21 +23,21 @@ std::vector<std::string> split_string(std::string& line, char del) { // Р Р°Р·Рґ
 
 }
 
-bool check_data_symbols(std::string& data, const char* format) { //РџСЂРѕРІРµСЂРєР°, С‡С‚Рѕ СЃС‚СЂРѕРєР° РЅРµ РїСѓСЃС‚Р°СЏ Рё РЅРµ СЃРѕРґРµСЂР¶РёС‚ Р»РёС€РЅРёС… СЃРёРјРІРѕР»РѕРІ
+bool check_data_symbols(std::string& data, const char* format) { //Проверка, что строка не пустая и не содержит лишних символов
 	if (data.find_first_not_of(format) == std::string::npos && data.length() != 0)
 		return true;
 	return false;
 }
 
-bool check_time_format(std::string& time) { // РџСЂРѕРІРµСЂРєР° СЃРѕРѕС‚РІРµС‚СЃС‚РІРёСЏ РІСЂРµРјРµРЅРё РІРёРґСѓ "24-С‡Р°СЃРѕРІРѕР№ С„РѕСЂРјР°С‚ СЃ РґРІРѕРµС‚РѕС‡РёРµРј РІ РєР°С‡РµСЃС‚РІРµ СЂР°Р·РґРµР»РёС‚РµР»СЏ XX:XX, РЅРµР·РЅР°С‡Р°С‰РёРµ РЅСѓР»Рё РѕР±СЏР·Р°С‚РµР»СЊРЅС‹"
+bool check_time_format(std::string& time) { // Проверка соответствия времени виду "24-часовой формат с двоеточием в качестве разделителя XX:XX, незначащие нули обязательны"
 	if (time[2] == ':' && isdigit(time[0]) && isdigit(time[1]) && isdigit(time[3]) && isdigit(time[4]))
 		return true;
 	return false;
 }
 
-void check_init_data(std::ifstream& in, int& comp_numb, std::string& start_time, std::string& end_time, int& cost) { // РЎС‡РёС‚С‹РІР°РЅРёРµ Рё РїСЂРѕРІРµСЂРєР° РєРѕСЂСЂРµРєС‚РЅРѕСЃС‚Рё РїРµСЂРІС‹С… С‚СЂРµС… СЃС‚СЂРѕРє С„Р°Р№Р»Р° СЃ РґР°РЅРЅС‹РјРё
+void check_init_data(std::ifstream& in, int& comp_numb, std::string& start_time, std::string& end_time, int& cost) { // Считывание и проверка корректности первых трех строк файла с данными
 	
-	// РЎС‡РёС‚С‹РІР°РµРЅРёРµ Рё РїСЂРѕРІРµСЂРєР° РєРѕР»РёС‡РµСЃС‚РІР° СЃС‚РѕР»РѕРІ
+	// Считываение и проверка количества столов
 	std::string n;
 	getline(in, n);
 	if (!(check_data_symbols(n, "0123456789"))) {
@@ -48,7 +48,7 @@ void check_init_data(std::ifstream& in, int& comp_numb, std::string& start_time,
 		comp_numb = std::stoi(n);
 	}
 
-	// РЎС‡РёС‚С‹РІР°РЅРёРµ Рё РїСЂРѕРІРµСЂРєР° РІСЂРµРјРµРЅРё СЂР°Р±РѕС‚С‹
+	// Считывание и проверка времени работы
 	std::string time;
 	getline(in, time);
 	if (time[5] != ' ') {
@@ -56,25 +56,25 @@ void check_init_data(std::ifstream& in, int& comp_numb, std::string& start_time,
 		return;
 	}
 
-	// Р Р°Р·РґРµР»РµРЅРёРµ РЅР°С‡Р°Р»Р° Рё РєРѕРЅС†Р° РІСЂРµРјРµРЅРё СЂР°Р±РѕС‚С‹
+	// Разделение начала и конца времени работы
 	std::vector<std::string> tokens;
 	tokens = split_string(time, ' ');
 
-	// РџСЂРѕРІРµСЂРєР° РЅР°С‡Р°Р»Р° РІСЂРµРјРµРЅРё СЂР°Р±РѕС‚С‹
+	// Проверка начала времени работы
 	start_time = tokens[0];
 	if (!(check_data_symbols(start_time, ":0123456789") && check_time_format(start_time))) {
 		throw time;
 		return;
 	}
 
-	// РџСЂРѕРІРµСЂРєР° РєРѕРЅС†Р° РІСЂРµРјРµРЅРё СЂР°Р±РѕС‚С‹
+	// Проверка конца времени работы
 	end_time = tokens[1];
 	if (!(check_data_symbols(end_time, ":0123456789") && check_time_format(end_time))) {
 		throw time;
 		return;
 	}
 	
-	// РЎС‡РёС‚С‹РІР°РЅРёРµ Рё РїСЂРѕРІРµСЂРєР° СЃС‚РѕРёРјРѕСЃС‚Рё С‡Р°СЃР° РІ РєРѕРјРїСЊСЋС‚РµСЂРЅРѕРј РєР»СѓР±Рµ
+	// Считывание и проверка стоимости часа в компьютерном клубе
 	std::string c;
 	getline(in, c);
 	if (!(check_data_symbols(c, "0123456789"))) {
@@ -88,41 +88,41 @@ void check_init_data(std::ifstream& in, int& comp_numb, std::string& start_time,
 	return;
 }
 
-void check_event_format(std::string& line) { // РџСЂРѕРІРµСЂРєР° РєРѕСЂСЂРµРєС‚РЅРѕСЃС‚Рё СЃС‚СЂРѕРє СЃ СЃРѕР±С‹С‚РёСЏРјРё
+void check_event_format(std::string& line) { // Проверка корректности строк с событиями
 	
-	// Р Р°Р·РґРµР»РµРЅРёРµ СЃС‚СЂРѕРєРё РЅР° СЌР»РµРјРµРЅС‚С‹ СЃРѕР±С‹С‚РёСЏ
+	// Разделение строки на элементы события
 	std::vector<std::string> tokens;
 	tokens = split_string(line, ' ');
 
-	if (tokens.size() < 3 || tokens.size() > 4) { // РџСЂРѕРІРµСЂРєР° РєРѕР»РёС‡РµСЃС‚РІР° СЌР»РµРјРµРЅС‚РѕРІ СЃРѕР±С‹С‚РёСЏ
+	if (tokens.size() < 3 || tokens.size() > 4) { // Проверка количества элементов события
 		throw line;
 		return;
 	}
 
 	Event event;
 
-	// РџСЂРѕРІРµСЂРєР° С„РѕСЂРјР°С‚Р° РІСЂРµРјРµРЅРё
+	// Проверка формата времени
 	if (!(check_data_symbols(tokens[0], ":0123456789") && check_time_format(tokens[0]))) {
 		throw line;
 		return;
 	}
 	event.time = tokens[0];
 	
-	// РџСЂРѕРІРµСЂРєР° С„РѕСЂРјР°С‚Р° id СЃРѕР±С‹С‚РёСЏ
+	// Проверка формата id события
 	if (!(check_data_symbols(tokens[1], "0123456789"))) {
 		throw line;
 		return;
 	}
 	event.id = std::stoi(tokens[1]);
 
-	// РџСЂРѕРІРµСЂРєР° С„РѕСЂРјР°С‚Р° РёРјРµРЅРё РєР»РёРµРЅС‚Р°
+	// Проверка формата имени клиента
 	if (!(check_data_symbols(tokens[2], "abcdefghijklmnopqrstuvwxyz0123456789_-"))) {
 		throw line;
 		return;
 	}
 	event.client_name = tokens[2];
 
-	// РџСЂРѕРІРµСЂРєР° С„РѕСЂРјР°С‚Р° РЅРѕРјРµСЂР° СЃС‚РѕР»Р° (РµСЃР»Рё РµСЃС‚СЊ РІ СЃРѕР±С‹С‚РёРё)
+	// Проверка формата номера стола (если есть в событии)
 	if (tokens.size() == 4) {
 		if (!(check_data_symbols(tokens[3], "0123456789"))) {
 			throw line;
@@ -134,6 +134,8 @@ void check_event_format(std::string& line) { // РџСЂРѕРІРµСЂРєР° РєРѕСЂСЂРµРєС‚Р
 }
 
 
+// ПРОВЕРИТЬ, ЧТО ВСЕ СОБЫТИЯ ИДУТ ПОСЛЕДОВАТЕЛЬНО
+// ПРОВЕРИТЬ, ЧТО ЭЛЕМЕНТЫ В СОБЫТИИ РАЗДЕЛЯЮТСЯ ПРОБЕЛАМИ
 
 int main(int argc, char *argv[]) {
 	std::string FileName = "";
@@ -141,28 +143,27 @@ int main(int argc, char *argv[]) {
 		FileName = argv[1];
 	}
 	else {
-		std::cout << ""; // РќРµ РІРІРµРґРµРЅ С„Р°Р№Р» РґР»СЏ С‡С‚РµРЅРёСЏ
+		std::cout << ""; // Не введен файл для чтения
 		return 1;
 	}
 	try {
 
-		// РџРѕРїС‹С‚РєР° РѕС‚РєСЂС‹С‚СЊ С„Р°Р№Р»
+		// Попытка открыть файл
 		std::ifstream in;
 		in.open(FileName);
 		if (!in.is_open()) throw FileName;
 
-		// РЎС‡РёС‚С‹РІР°РЅРёРµ Рё РїСЂРѕРІРµСЂРєР° РїРµСЂРІС‹С… С‚СЂРµС… СЃС‚СЂРѕРє С„Р°Р№Р»Р° СЃ РґР°РЅРЅС‹РјРё
+		// Считывание и проверка первых трех строк файла с данными
 		int comp_numb, cost;
 		std::string start_time;
 		std::string end_time;
 		check_init_data(in, comp_numb, start_time, end_time, cost);
 		
-		// РЎС‡РёС‚С‹РІР°РЅРёРµ, РїСЂРѕРІРµСЂРєР° Рё РѕР±СЂР°Р±РѕС‚РєР° СЃРѕР±С‹С‚РёР№
+		// Считывание, проверка и обработка событий
 		std::string line;
 		while (std::getline(in, line)) {
 			check_event_format(line);
 		}
-		
 	}
 	catch (const std::string err) {
 		std::cerr << err;
