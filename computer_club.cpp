@@ -41,7 +41,7 @@ bool check_time_format(std::string& time) { // Cheks if the string fits time for
 	return false;
 }
 
-void check_init_data(std::ifstream& in, int& comp_numb, std::string& start_time, std::string& end_time, int& hour_price) { // Reading and checking first three lines from data file
+void check_init_data(std::ifstream& in, int& comp_count, std::string& start_time, std::string& end_time, int& hour_price) { // Reading and checking first three lines from data file
 	
 	// Reading and checking the number of tables
 	std::string n;
@@ -51,7 +51,7 @@ void check_init_data(std::ifstream& in, int& comp_numb, std::string& start_time,
 		return;
 	}
 	else {
-		comp_numb = std::stoi(n);
+		comp_count = std::stoi(n);
 	}
 
 	// Reading and checking work time
@@ -94,7 +94,7 @@ void check_init_data(std::ifstream& in, int& comp_numb, std::string& start_time,
 	return;
 }
 
-void check_event_format(std::string& line, Event& event) { // Checking the correctness of event strings
+void check_event_format(std::string& line, Event& event, int& comp_count) { // Checking the correctness of event strings
 	
 	// Splitting a string into event elements
 	std::vector<std::string> tokens;
@@ -133,16 +133,68 @@ void check_event_format(std::string& line, Event& event) { // Checking the corre
 			return;
 		}
 		event.table = std::stoi(tokens[3]);
+		// Table number must be in range [1; comp_count]
+		if (event.table < 1 || event.table > comp_count) {
+			throw line;
+			return;
+		}
 	}
 	return;
 }
 
-std::vector<std::string> event_process(std::vector<Event>& events, Table* tables, int& comp_numb) { // Events processing. Returns vector of strings related to events that will be printed as a result of the program
+bool first_before_second(std::string time_1, std::string time_2) { // Compares time_1 and time_2 and returns true if time_1 <= time_2
+	int hours_1 = std::stoi(time_1.substr(0, 2));
+	int minutes_1 = std::stoi(time_1.substr(3, 2));
+	int hours_2 = std::stoi(time_2.substr(0, 2));
+	int minutes_2 = std::stoi(time_2.substr(3, 2));
+	if (hours_2 > hours_1) return false;
+	if (minutes_2 > minutes_1) return false;
+	return true;
+}
+
+std::vector<std::string> event_process(std::vector<Event>& events, Table* tables, int& comp_count) { // Events processing. Returns vector of strings related to events that will be printed as a result of the program
 	std::vector<std::string> out_lines;
+	for (int i = 0; i < events.size(); ++i) {
+
+		// Checking that events are consequential
+		if (i + 1 < events.size()) {
+			if (!first_before_second(events[i].time, events[i + 1].time)) {
+				throw events[i + 1];
+				return out_lines;
+			}
+		}
+
+		switch (events[i].id) {
+		case 1:
+			// if event requires the table, chesk its presence. if doesn't, check its absence
+			break;
+		case 2:
+			// if event requires the table, chesk its presence. if doesn't, check its absence
+			break;
+		case 3:
+			// if event requires the table, chesk its presence. if doesn't, check its absence
+			break;
+		case 4:
+			// if event requires the table, chesk its presence. if doesn't, check its absence
+			break;
+		case 11:
+			// if event requires the table, chesk its presence. if doesn't, check its absence
+			break;
+		case 12:
+			// if event requires the table, chesk its presence. if doesn't, check its absence
+			break;
+		case 13:
+			// if event requires the table, chesk its presence. if doesn't, check its absence
+			break;
+		default:
+			break;
+		}
+	}
+
 	return out_lines;
 }
 
-void output(std::vector <std::string>& events_lines, Table* tables, int& comp_numb, std::string& start_time, std::string& end_time, int& hour_price) { // Output of the work result to the console
+void output(std::vector <std::string>& events_lines, Table* tables, int& comp_count, std::string& start_time, std::string& end_time, int& hour_price) { // Output of the work result to the console
 	
 	// The start of the work time
 	std::cout << start_time << std::endl;
@@ -156,11 +208,11 @@ void output(std::vector <std::string>& events_lines, Table* tables, int& comp_nu
 	std::cout << end_time << std::endl;
 	
 	// Output of profit and usage time of each table
-	for (int i = 0; i < comp_numb; ++i) {
+	for (int i = 0; i < comp_count; ++i) {
 		std::cout << tables[i].id << " " << tables[i].profit << " " << tables[i].usage_time << std::endl;
 	}
 	// Result for the last table is output without endl
-	std::cout << tables[comp_numb - 1].id << " " << tables[comp_numb - 1].profit << " " << tables[comp_numb - 1].usage_time;
+	std::cout << tables[comp_count - 1].id << " " << tables[comp_count - 1].profit << " " << tables[comp_count - 1].usage_time;
 	return;
 }
 
@@ -184,27 +236,27 @@ int main(int argc, char *argv[]) {
 		if (!in.is_open()) throw FileName;
 
 		// Reading and checking the first three lines of the data file
-		int comp_numb, hour_price;
+		int comp_count, hour_price;
 		std::string start_time;
 		std::string end_time;
-		check_init_data(in, comp_numb, start_time, end_time, hour_price);
+		check_init_data(in, comp_count, start_time, end_time, hour_price);
 		
 		// Reading and checking events
 		std::string line;
 		std::vector <Event> events;
 		while (std::getline(in, line)) {
 			Event event;
-			check_event_format(line, event);
+			check_event_format(line, event, comp_count);
 			events.push_back(event);
 		}
 
 		// Processing events
 		std::vector <std::string> events_lines;
-		Table* tables = new Table [comp_numb];
-		events_lines = event_process(events, tables, comp_numb);
+		Table* tables = new Table [comp_count];
+		events_lines = event_process(events, tables, comp_count);
 
 		// Output result
-		output(events_lines, tables, comp_numb, start_time, end_time, hour_price);
+		output(events_lines, tables, comp_count, start_time, end_time, hour_price);
 	}
 	catch (const std::string err) {
 		std::cerr << err;
