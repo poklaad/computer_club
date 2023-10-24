@@ -42,7 +42,8 @@ bool check_data_symbols(std::string& data, const char* format) { // Cheks that t
 
 bool check_time_format(std::string& time) { // Cheks if the string fits time format "XX:XX, 24-hour with ':' as a separator, unmeaningful nulls are required"
 	if (time[2] == ':' && isdigit(time[0]) && isdigit(time[1]) && isdigit(time[3]) && isdigit(time[4]))
-		return true;
+		if (std::stoi(time.substr(0, 2)) <= 23 && std::stoi(time.substr(0, 2)) <= 59)
+			return true;
 	return false;
 }
 
@@ -344,7 +345,7 @@ std::vector<std::string> event_process(std::vector<Event>& events, Table* tables
 						int minutes = std::stoi(this_client_time.substr(3, 2));
 						if (minutes > 0) 
 							++hours;
-						tables[cur_table_num].profit = hours * hour_price;
+						tables[cur_table_num].profit = tables[cur_table_num].profit + hours * hour_price;
 					}
 
 					tables[cur_table_num].start_using_time = ""; // Clear current table's using start time
@@ -363,6 +364,22 @@ std::vector<std::string> event_process(std::vector<Event>& events, Table* tables
 			// There should NOT be table number
 			if (events[i].table != 0) {
 				out_line = out_line + " " + std::to_string(events[i].table);
+				out_lines.push_back(out_line);
+				out_line = "";
+				throw events[i];
+				return out_lines;
+			}
+
+			// Client can't wait if he already has a table
+			if (clients_tables[events[i].client_name] != 0) {
+				out_lines.push_back(out_line);
+				out_line = "";
+				throw events[i];
+				return out_lines;
+			}
+
+			// Client can't be in the deque twice
+			if (std::find(clients_deque.begin(), clients_deque.end(), events[i].client_name) != clients_deque.end()) { // Check if client in deque
 				out_lines.push_back(out_line);
 				out_line = "";
 				throw events[i];
@@ -444,13 +461,13 @@ std::vector<std::string> event_process(std::vector<Event>& events, Table* tables
 					int minutes = std::stoi(this_client_time.substr(3, 2));
 					if (minutes > 0)
 						++hours;
-					tables[cur_table_num].profit = hours * hour_price;
+					tables[cur_table_num].profit = tables[cur_table_num].profit + hours * hour_price;
 				}
 
 				tables[cur_table_num].start_using_time = ""; // Clear current table's using start time
 				client_has_gone(events[i].client_name, clients_tables, clients_deque); // Delete the client that has gone 
 
-				if (clients_deque.size() != 0) { //If there is someone in deque, he will take this computer
+				if (cur_table_num != 0 && clients_deque.size() != 0) { //If there is someone in deque, he will take this computer
 					// Delete first client from the deque
 					std::string client = clients_deque.front();
 					clients_deque.pop_front();
@@ -499,7 +516,7 @@ void end_day(std::vector<std::string>& events_lines, Table* tables, int& comp_co
 			int minutes = std::stoi(this_client_time.substr(3, 2));
 			if (minutes > 0)
 				++hours;
-			tables[cur_table_num].profit = hours * hour_price;
+			tables[cur_table_num].profit = tables[cur_table_num].profit + hours * hour_price;
 		}
 		tables[cur_table_num].start_using_time = ""; // Clear current table's using start time
 		tables[cur_table_num].is_busy = false;
