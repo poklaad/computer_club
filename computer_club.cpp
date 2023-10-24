@@ -349,7 +349,7 @@ std::vector<std::string> event_process(std::vector<Event>& events, Table* tables
 
 					tables[cur_table_num].start_using_time = ""; // Clear current table's using start time
 					tables[targ_table_num].start_using_time = events[i].time; // Set target table's using start time
-					clients_tables[events[i].client_name] = targ_table_num;
+					clients_tables[events[i].client_name] = targ_table_num; // Add to client new table
 				}
 
 			out_line = "";
@@ -395,7 +395,7 @@ std::vector<std::string> event_process(std::vector<Event>& events, Table* tables
 			if (!excep) // Check if there has already been an exception
 				clients_deque.push_back(events[i].client_name);
 				if (clients_deque.size() > comp_count) { // Check if there are more clients in the queue than the total number of tables.
-					client_has_gone(events[i].client_name, clients_tables, clients_deque);
+					client_has_gone(events[i].client_name, clients_tables, clients_deque); // Event ID 11
 					out_line = events[i].time + " 11 " + events[i].client_name;
 					out_lines.push_back(out_line);
 					out_line = "";
@@ -423,15 +423,47 @@ std::vector<std::string> event_process(std::vector<Event>& events, Table* tables
 
 			bool excep = false;
 
-			// ïîñ÷èòàòü ïğèáûëü
-			// îáíîâèòü âğåìÿ ğàáîòû êîìïüşòåğà
-			// óäàëèòü ñòàğîãî êëèåíòà 
-			// îñâîáîäèòü êîìïüşòåğ
-			// 
-			// 
-			// âûäàòü íîâîìó êëèåíòó êîìïüşåòğ
-			// îáíîâèòü âğåìÿ íà÷àëà ğàáîòû ñ êîìïüşòåğîì
-			// çàíÿòü êîìïüşòåğ
+			if (!clients_tables.count(events[i].client_name)) { // Check if the client in the club
+				out_line = events[i].time + " 13 ClientUnknown";
+				out_lines.push_back(out_line);
+				out_line = "";
+				excep = true;
+			}
+
+			if (!excep) {
+
+				// Calculate the profit and usage time that current client has produced. Then delete him grom the club. If there is someone in the deque, give him a computer
+				int cur_table_num = clients_tables[events[i].client_name];
+				tables[cur_table_num].is_busy = false; // Current table set free
+
+				// We don't count profit for the table with number 0
+				if (cur_table_num != 0) {
+					std::string this_client_time = sum_dif_time(events[i].time, tables[cur_table_num].start_using_time, "minus"); // Calculate time spent at the current table by this client
+					tables[cur_table_num].usage_time = sum_dif_time(this_client_time, tables[cur_table_num].usage_time, "plus"); // Calculate time spent at the current table at all
+					int hours = std::stoi(this_client_time.substr(0, 2));
+					int minutes = std::stoi(this_client_time.substr(3, 2));
+					if (minutes > 0)
+						++hours;
+					tables[cur_table_num].profit = hours * hour_price;
+				}
+
+				tables[cur_table_num].start_using_time = ""; // Clear current table's using start time
+				client_has_gone(events[i].client_name, clients_tables, clients_deque); // Delete the client that has gone 
+
+				if (clients_deque.size() != 0) { //If there is someone in deque, he will take this computer
+					// Delete first client from the deque
+					std::string client = clients_deque.front();
+					clients_deque.pop_front();
+					tables[cur_table_num].is_busy = true; // Current table set busy
+					tables[cur_table_num].start_using_time = events[i].time; // Set current table's using start time
+					clients_tables[client] = cur_table_num; // Add to client from the deque new table
+
+					// Event ID 12
+					out_line = events[i].time + " 12 " + client + " " + std::to_string(cur_table_num);
+					out_lines.push_back(out_line);
+					out_line = "";
+				}
+			}
 
 			break;
 		}
@@ -483,7 +515,7 @@ void end_day(std::vector<std::string>& events_lines, Table* tables, int& comp_co
 		});
 	std::string out_line;
 	for (int i = 0; i < vec.size(); ++i) {
-		client_has_gone(vec[i].first, clients_tables, clients_deque);
+		client_has_gone(vec[i].first, clients_tables, clients_deque); // Event ID 11
 		out_line = end_time + " 11 " + vec[i].first;
 		events_lines.push_back(out_line);
 		out_line = "";
@@ -515,7 +547,6 @@ void output(std::vector <std::string>& events_lines, Table* tables, int& comp_co
 }
 
 
-// ÏĞÎÂÅĞÈÒÜ, ×ÒÎ Â ÊÎÍÖÅ ĞÀÁÎ×ÅÃÎ ÄÍß ÂÑÅ ÓØËÈ. ÂÑÅ ÓÕÎÄßÒ Â ÀËÔÀÂÈÒÍÎÌ ÏÎĞßÄÊÅ ÈÕ ÈÌÅÍ
 
 int main(int argc, char *argv[]) {
 	std::string FileName = "";
