@@ -493,9 +493,9 @@ std::vector<std::string> event_process(std::vector<Event>& events, Table* tables
 				out_line = out_line + " " + std::to_string(events[i].table);
 				out_lines.push_back(out_line);
 				out_line = "";
-				throw events[i];
-				return out_lines;
 			}
+			throw events[i];
+			return out_lines;
 			break;
 		}
 		}
