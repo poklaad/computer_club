@@ -222,10 +222,9 @@ void client_has_gone(std::string& client_name, std::map<std::string, int>& clien
 }
 
 std::vector<std::string> event_process(std::vector<Event>& events, Table* tables, int& comp_count, std::string& start_time, std::string& end_time,
-									   int& hour_price, std::deque <std::string>& clients_deque) { // Events processing. Returns vector of strings 
+									   int& hour_price, std::deque <std::string>& clients_deque, std::map<std::string, int>& clients_tables) { // Events processing. Returns vector of strings 
 																														 // related to events that will be printed as a result of the program
 	std::vector<std::string> out_lines; // lines to output
-	std::map<std::string, int> clients_tables; // clients and their tables a.k.a. clients in the club (if client doesn't have table, table's number = 0)
 	for (int i = 0; i < events.size(); ++i) {
 		// Checking that events are consequential
 		if (i + 1 < events.size()) {
@@ -337,7 +336,7 @@ std::vector<std::string> event_process(std::vector<Event>& events, Table* tables
 					tables[cur_table_num].is_busy = false; // Current table set free
 					tables[targ_table_num].is_busy = true; // Target table set busy
 					
-					// We don't count table with number 0
+					// We don't count profit for the table with number 0
 					if (cur_table_num != 0) {
 						std::string this_client_time = sum_dif_time(events[i].time, tables[cur_table_num].start_using_time, "minus"); // Calculate time spent at the current table by this client
 						tables[cur_table_num].usage_time = sum_dif_time(this_client_time, tables[cur_table_num].usage_time, "plus"); // Calculate time spent at the current table at all
@@ -350,6 +349,7 @@ std::vector<std::string> event_process(std::vector<Event>& events, Table* tables
 
 					tables[cur_table_num].start_using_time = ""; // Clear current table's using start time
 					tables[targ_table_num].start_using_time = events[i].time; // Set target table's using start time
+					clients_tables[events[i].client_name] = targ_table_num;
 				}
 
 			out_line = "";
@@ -423,6 +423,16 @@ std::vector<std::string> event_process(std::vector<Event>& events, Table* tables
 
 			bool excep = false;
 
+			// ïîñ÷èòàòü ïğèáûëü
+			// îáíîâèòü âğåìÿ ğàáîòû êîìïüşòåğà
+			// óäàëèòü ñòàğîãî êëèåíòà 
+			// îñâîáîäèòü êîìïüşòåğ
+			// 
+			// 
+			// âûäàòü íîâîìó êëèåíòó êîìïüşåòğ
+			// îáíîâèòü âğåìÿ íà÷àëà ğàáîòû ñ êîìïüşòåğîì
+			// çàíÿòü êîìïüşòåğ
+
 			break;
 		}
 		default: { // There is no such id, throw an error
@@ -443,6 +453,43 @@ std::vector<std::string> event_process(std::vector<Event>& events, Table* tables
 	}
 
 	return out_lines;
+}
+
+void end_day(std::vector<std::string>& events_lines, Table* tables, int& comp_count, std::string& end_time, int& hour_price, 
+			 std::deque <std::string>& clients_deque, std::map<std::string, int>& clients_tables) { // Finishes work day. Deletes all clients from the club and from the deque.
+																									// Counts profit if someone still uses computer.
+	for (auto iter = clients_tables.begin(); iter != clients_tables.end(); iter++) {
+		int cur_table_num = iter->second;
+		if (cur_table_num != 0) {
+			std::string this_client_time = sum_dif_time(end_time, tables[cur_table_num].start_using_time, "minus"); // Calculate time spent at the current table by this client
+			tables[cur_table_num].usage_time = sum_dif_time(this_client_time, tables[cur_table_num].usage_time, "plus"); // Calculate time spent at the current table at all
+			int hours = std::stoi(this_client_time.substr(0, 2));
+			int minutes = std::stoi(this_client_time.substr(3, 2));
+			if (minutes > 0)
+				++hours;
+			tables[cur_table_num].profit = hours * hour_price;
+		}
+		tables[cur_table_num].start_using_time = ""; // Clear current table's using start time
+		tables[cur_table_num].is_busy = false;
+	}
+
+	// Deleting clients in alphabetical order using vector
+	std::vector<std::pair<std::string, int>> vec;
+	std::copy(clients_tables.begin(), clients_tables.end(), std::back_inserter< std::vector<std::pair<std::string, int>>>(vec));
+	std::sort(vec.begin(), vec.end(), 
+		[](const std::pair<std::string, int>& l, const std::pair<std::string, int>& r) 
+		{ 
+			return l.first < r.first; 
+		});
+	std::string out_line;
+	for (int i = 0; i < vec.size(); ++i) {
+		client_has_gone(vec[i].first, clients_tables, clients_deque);
+		out_line = end_time + " 11 " + vec[i].first;
+		events_lines.push_back(out_line);
+		out_line = "";
+	}
+	
+	return;
 }
 
 void output(std::vector <std::string>& events_lines, Table* tables, int& comp_count, std::string& start_time, std::string& end_time) { // Output of the work result to the console
@@ -468,7 +515,6 @@ void output(std::vector <std::string>& events_lines, Table* tables, int& comp_co
 }
 
 
-// ÏĞÎÂÅĞÈÒÜ, ×ÒÎ ÂÑÅ ÑÎÁÛÒÈß ÈÄÓÒ ÏÎÑËÅÄÎÂÀÒÅËÜÍÎ
 // ÏĞÎÂÅĞÈÒÜ, ×ÒÎ Â ÊÎÍÖÅ ĞÀÁÎ×ÅÃÎ ÄÍß ÂÑÅ ÓØËÈ. ÂÑÅ ÓÕÎÄßÒ Â ÀËÔÀÂÈÒÍÎÌ ÏÎĞßÄÊÅ ÈÕ ÈÌÅÍ
 
 int main(int argc, char *argv[]) {
@@ -505,12 +551,16 @@ int main(int argc, char *argv[]) {
 		// Processing events
 		std::vector <std::string> events_lines;
 		std::deque <std::string> clients_deque;
+		std::map<std::string, int> clients_tables; // clients and their tables a.k.a. clients in the club (if client doesn't have table, table's number = 0)
 		Table* tables = new Table [comp_count + 1]; // We don't use the table with number 0
 		for (int i = 0; i < comp_count + 1; i++) {
 			tables[i].id = i;
 		}
-		events_lines = event_process(events, tables, comp_count,start_time, end_time, hour_price, clients_deque);
+		events_lines = event_process(events, tables, comp_count, start_time, end_time, hour_price, clients_deque, clients_tables);
 
+		// End of the work day
+		end_day(events_lines, tables, comp_count, end_time, hour_price, clients_deque, clients_tables);
+		
 		// Output result
 		output(events_lines, tables, comp_count, start_time, end_time);
 	}
