@@ -4,6 +4,8 @@
 #include <vector>
 #include <sstream>
 #include <map>
+#include <deque>
+#include <algorithm>
 
 
 struct Event {
@@ -209,9 +211,21 @@ std::string sum_dif_time(std::string time_now, std::string time_before, std::str
 	return time;
 }
 
-std::vector<std::string> event_process(std::vector<Event>& events, Table* tables, int& comp_count, std::string& start_time, std::string& end_time, int& hour_price) { // Events processing. Returns vector of strings related to events that will be printed as a result of the program
+void client_has_gone(std::string& client_name, std::map<std::string, int>& clients_tables, std::deque <std::string>& clients_deque) { // Deletes client from the club and queue
+	clients_tables.erase(client_name);
+	std::deque<std::string>::iterator itr;
+	itr = std::find(clients_deque.begin(), clients_deque.end(), client_name);
+	if (itr != clients_deque.end()) { // Check if client in deque
+		clients_deque.erase(itr);
+	}
+	return;
+}
+
+std::vector<std::string> event_process(std::vector<Event>& events, Table* tables, int& comp_count, std::string& start_time, std::string& end_time,
+									   int& hour_price, std::deque <std::string>& clients_deque) { // Events processing. Returns vector of strings 
+																														 // related to events that will be printed as a result of the program
 	std::vector<std::string> out_lines; // lines to output
-	std::map<std::string, int> clients_tables; // clients and their tables (if client doesn't have table, table's number = 0)
+	std::map<std::string, int> clients_tables; // clients and their tables a.k.a. clients in the club (if client doesn't have table, table's number = 0)
 	for (int i = 0; i < events.size(); ++i) {
 		// Checking that events are consequential
 		if (i + 1 < events.size()) {
@@ -338,6 +352,7 @@ std::vector<std::string> event_process(std::vector<Event>& events, Table* tables
 					tables[targ_table_num].start_using_time = events[i].time; // Set target table's using start time
 				}
 
+			out_line = "";
 			break;
 		}
 		case 3: {
@@ -359,6 +374,34 @@ std::vector<std::string> event_process(std::vector<Event>& events, Table* tables
 
 			bool excep = false;
 
+			if (!clients_tables.count(events[i].client_name)) { // Check if the client in the club
+				out_line = events[i].time + " 13 ClientUnknown";
+				out_lines.push_back(out_line);
+				out_line = "";
+				excep = true;
+			}
+
+			if (!excep) // Check if there has already been an exception
+				for (int j = 1; j < comp_count + 1; ++j) { // Check if there free table
+					if (!tables[j].is_busy) {
+						out_line = events[i].time + " 13 ICanWaitNoLonger!";
+						out_lines.push_back(out_line);
+						out_line = "";
+						excep = true;
+						break;
+					}
+				}
+
+			if (!excep) // Check if there has already been an exception
+				clients_deque.push_back(events[i].client_name);
+				if (clients_deque.size() > comp_count) { // Check if there are more clients in the queue than the total number of tables.
+					client_has_gone(events[i].client_name, clients_tables, clients_deque);
+					out_line = events[i].time + " 11 " + events[i].client_name;
+					out_lines.push_back(out_line);
+					out_line = "";
+				}
+
+			out_line = "";
 			break;
 		}
 		case 4: {
@@ -461,12 +504,12 @@ int main(int argc, char *argv[]) {
 
 		// Processing events
 		std::vector <std::string> events_lines;
+		std::deque <std::string> clients_deque;
 		Table* tables = new Table [comp_count + 1]; // We don't use the table with number 0
 		for (int i = 0; i < comp_count + 1; i++) {
 			tables[i].id = i;
 		}
-
-		events_lines = event_process(events, tables, comp_count,start_time, end_time, hour_price);
+		events_lines = event_process(events, tables, comp_count,start_time, end_time, hour_price, clients_deque);
 
 		// Output result
 		output(events_lines, tables, comp_count, start_time, end_time);
