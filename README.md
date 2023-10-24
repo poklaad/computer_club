@@ -9,7 +9,7 @@
 ```g++ computer_club.cpp -o program.exe```
 
 Запуск:
-```program.exe <path_to_txt_file>```
+```program.exe path/to/txt/file.txt```
 
 Код представлен в файле computer_club.cpp
 Используемые тестовые примеры расположены в папках testing_wrong_input и testing_apropriate_inputs
